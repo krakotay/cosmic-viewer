@@ -1,0 +1,30 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'krakotay/cosmic-viewer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fast-forward the upstream mirror
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init --bare "$RUNNER_TEMP/cosmic-upstream.git"
+          cd "$RUNNER_TEMP/cosmic-upstream.git"
+          git fetch --no-tags https://github.com/pop-os/cosmic-viewer.git refs/heads/master:refs/heads/sync-source
+          git -c credential.helper= -c 'credential.helper=!gh auth git-credential' push \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git" refs/heads/sync-source:refs/heads/upstream
